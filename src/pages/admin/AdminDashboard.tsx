@@ -78,7 +78,7 @@ export default function AdminDashboard() {
     try {
       const [ordersRes, productsRes, profilesRes, orderItemsRes] =
         await Promise.all([
-          supabase.select("orders", { select: "*" }),
+          supabase.from("orders").select("*"),
           supabase.from("products").select("id, name"),
           supabase.from("profiles").select("id"),
           supabase.from("order_items").select("*"),
