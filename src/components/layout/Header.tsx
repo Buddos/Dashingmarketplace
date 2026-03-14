@@ -3,7 +3,10 @@ import { Search, ShoppingBag, Heart, User, Menu, X, LogOut } from "lucide-react"
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+<<<<<<< HEAD
 import logo from "@/assets/logo.png";
+=======
+>>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
 
 const navLinks = [
   { label: "Shop", to: "/shop" },
@@ -34,7 +37,11 @@ const Header = () => {
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
       {/* Top bar */}
       <div className="bg-primary text-primary-foreground text-center py-2 text-xs font-body tracking-widest uppercase">
+<<<<<<< HEAD
         Free shipping on orders over KES 100 — <Link to="/deals" className="underline underline-offset-2">Shop Deals</Link>
+=======
+        Free shipping on orders over $100 — <Link to="/deals" className="underline underline-offset-2">Shop Deals</Link>
+>>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
       </div>
 
       <div className="container mx-auto px-4 lg:px-8">
@@ -50,7 +57,11 @@ const Header = () => {
 
           {/* Logo */}
           <Link to="/" className="flex items-center">
+<<<<<<< HEAD
             <img src={logo} alt="Dashing Logo" width="200" className="h-12 md:h-16 w-auto" />
+=======
+            <img src="/src/assets/logo.png" alt="Dashing Logo" width="200" className="h-12 md:h-16 w-auto" />
+>>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
           </Link>
 
           {/* Desktop nav */}

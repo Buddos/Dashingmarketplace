@@ -85,7 +85,11 @@ const Cart = () => {
                 </div>
               </div>
               {shipping > 0 && (
+<<<<<<< HEAD
                 <p className="font-body text-xs text-muted-foreground mt-3">Free shipping on orders over KES 100</p>
+=======
+                <p className="font-body text-xs text-muted-foreground mt-3">Free shipping on orders over $100</p>
+>>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
               )}
               <Link to="/checkout">
                 <Button className="w-full mt-6 bg-accent text-accent-foreground hover:bg-accent/90 font-body font-semibold uppercase tracking-wide h-12">

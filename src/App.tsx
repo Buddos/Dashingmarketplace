@@ -29,6 +29,16 @@ import AdminReviews from "./pages/admin/AdminReviews";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminContactInfo from "./pages/admin/AdminContactInfo";
 import AdminTeam from "./pages/admin/AdminTeam";
+<<<<<<< HEAD
+=======
+import SellerLayout from "./components/seller/SellerLayout";
+import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerProducts from "./pages/seller/SellerProducts";
+import SellerOrders from "./pages/seller/SellerOrders";
+import SellerAnalytics from "./pages/seller/SellerAnalytics";
+import SellerRegister from "./pages/seller/SellerRegister";
+import SellerLogin from "./pages/seller/SellerLogin";
+>>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
 
 const queryClient = new QueryClient();
 
@@ -51,6 +61,19 @@ const App = () => (
               <Route path="/admin/contact-info" element={<AdminLayout><AdminContactInfo /></AdminLayout>} />
               <Route path="/admin/team" element={<AdminLayout><AdminTeam /></AdminLayout>} />
 
+<<<<<<< HEAD
+=======
+              {/* Seller routes */}
+              <Route path="/seller" element={<SellerLayout><SellerDashboard /></SellerLayout>} />
+              <Route path="/seller/products" element={<SellerLayout><SellerProducts /></SellerLayout>} />
+              <Route path="/seller/orders" element={<SellerLayout><SellerOrders /></SellerLayout>} />
+              <Route path="/seller/analytics" element={<SellerLayout><SellerAnalytics /></SellerLayout>} />
+
+              {/* Seller auth routes (no layout) */}
+              <Route path="/seller/register" element={<SellerRegister />} />
+              <Route path="/seller/login" element={<SellerLogin />} />
+
+>>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
               {/* Store routes */}
               <Route
                 path="*"
