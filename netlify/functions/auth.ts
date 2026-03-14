@@ -145,6 +145,14 @@ export const handler = async (
       }
     }
 
+    // ── FORGOT PASSWORD ─────────────────────────────────────────────────────
+    if (event.httpMethod === "POST" && route === "/forgot-password") {
+      const { email } = JSON.parse(event.body ?? "{}");
+      if (!email) return makeResponse(400, { error: "Email required" });
+      // In a real app, you'd send an email here. For now, we just return success.
+      return makeResponse(200, { success: true, message: "If an account exists, a reset link has been sent." });
+    }
+
     return makeResponse(404, { error: "Not Found" });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";

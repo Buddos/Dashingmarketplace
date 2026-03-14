@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: string;
+  email: string;
   full_name: string | null;
   phone: string | null;
   city: string | null;
@@ -16,28 +18,21 @@ interface UserProfile {
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
-    const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-      supabase.from("user_roles").select("user_id, role"),
-    ]);
-
-    const adminIds = new Set(
-      (roles || []).filter((r) => r.role === "admin").map((r) => r.user_id)
-    );
-
-    setUsers(
-      (profiles || []).map((p) => ({
-        ...p,
-        isAdmin: adminIds.has(p.id),
-      }))
-    );
-    setLoading(false);
+    try {
+      const data = await api.fetch("/api/users");
+      setUsers(data || []);
+    } catch (err: any) {
+      toast({ title: "Error fetching users", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,11 +54,14 @@ export default function AdminUsers() {
             <Card key={u.id} className="border-border/50">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center text-accent-foreground font-semibold text-sm">
-                  {(u.full_name || "?").charAt(0).toUpperCase()}
+                  {(u.full_name || u.email || "?").charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground">
                     {u.full_name || "Unnamed"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {u.email}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {u.city && u.country

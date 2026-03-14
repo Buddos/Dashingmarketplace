@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,44 +37,50 @@ export default function AdminMessages() {
   }, []);
 
   const fetchMessages = async () => {
-    const { data } = await supabase
-      .from("contact_messages")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setMessages(data || []);
-    setLoading(false);
+    try {
+      const data = await api.fetch("/api/admin/messages");
+      setMessages(data || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openMessage = async (msg: Message) => {
     setSelected(msg);
     setReply(msg.admin_reply || "");
     if (msg.status === "unread") {
-      await supabase
-        .from("contact_messages")
-        .update({ status: "read", updated_at: new Date().toISOString() })
-        .eq("id", msg.id);
-      fetchMessages();
+      try {
+        await api.fetch(`/api/admin/messages/${msg.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ status: "read" }),
+        });
+        fetchMessages();
+      } catch (err) {
+        console.error("Error marking as read:", err);
+      }
     }
   };
 
   const sendReply = async () => {
     if (!selected || !reply.trim()) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("contact_messages")
-      .update({
-        admin_reply: reply,
-        status: "replied",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selected.id);
-    setSaving(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.fetch(`/api/admin/messages/${selected.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          admin_reply: reply,
+          status: "replied",
+        }),
+      });
       toast({ title: "Reply saved" });
       setSelected(null);
       fetchMessages();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 

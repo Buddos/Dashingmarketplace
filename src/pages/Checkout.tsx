@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ const Checkout = () => {
     city: "",
     state: "",
     zip: "",
-    country: "US",
+    country: "KE",
   });
 
   // Redirect to login if not authenticated
@@ -53,8 +53,8 @@ const Checkout = () => {
     );
   }
 
-  const shipping = subtotal >= 100 ? 0 : 9.99;
-  const tax = subtotal * 0.08;
+  const shipping = subtotal >= 1000 ? 0 : 250;
+  const tax = subtotal * 0.16;
   const total = subtotal + shipping + tax;
 
   const updateField = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
@@ -67,50 +67,37 @@ const Checkout = () => {
     }
 
     setLoading(true);
-    // Create order
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        user_id: user!.id,
-        subtotal,
-        shipping,
-        tax,
-        total,
-        shipping_name: form.name,
-        shipping_address: form.address,
-        shipping_city: form.city,
-        shipping_state: form.state,
-        shipping_zip: form.zip,
-        shipping_country: form.country,
-        status: "confirmed",
-      })
-      .select("id")
-      .single();
+    try {
+      // Create order with items in one go using our custom API
+      await api.fetch("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          subtotal,
+          shipping,
+          tax,
+          total,
+          shipping_name: form.name,
+          shipping_address: form.address,
+          shipping_city: form.city,
+          shipping_state: form.state,
+          shipping_zip: form.zip,
+          shipping_country: form.country,
+          items: items.map(item => ({
+            product_id: item.productId,
+            product_name: item.name,
+            price: item.salePrice ?? item.price,
+            quantity: item.quantity,
+          })),
+        }),
+      });
 
-    if (orderError) {
-      toast.error("Failed to place order");
-      setLoading(false);
-      return;
-    }
-
-    // Create order items
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      product_name: item.name,
-      price: item.salePrice ?? item.price,
-      quantity: item.quantity,
-    }));
-
-    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-
-    setLoading(false);
-    if (itemsError) {
-      toast.error("Order placed but items may be incomplete");
-    } else {
       toast.success("Order placed successfully!");
       await clearCart();
       navigate("/", { replace: true });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to place order");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -138,15 +125,15 @@ const Checkout = () => {
               </div>
               <div>
                 <Label className="font-body text-sm font-medium">City</Label>
-                <Input value={form.city} onChange={(e) => updateField("city", e.target.value)} placeholder="New York" className="mt-1.5" />
+                <Input value={form.city} onChange={(e) => updateField("city", e.target.value)} placeholder="Nairobi" className="mt-1.5" />
               </div>
               <div>
-                <Label className="font-body text-sm font-medium">State</Label>
-                <Input value={form.state} onChange={(e) => updateField("state", e.target.value)} placeholder="NY" className="mt-1.5" />
+                <Label className="font-body text-sm font-medium">State/County</Label>
+                <Input value={form.state} onChange={(e) => updateField("state", e.target.value)} placeholder="Nairobi" className="mt-1.5" />
               </div>
               <div>
                 <Label className="font-body text-sm font-medium">ZIP Code</Label>
-                <Input value={form.zip} onChange={(e) => updateField("zip", e.target.value)} placeholder="10001" className="mt-1.5" />
+                <Input value={form.zip} onChange={(e) => updateField("zip", e.target.value)} placeholder="00100" className="mt-1.5" />
               </div>
               <div>
                 <Label className="font-body text-sm font-medium">Country</Label>
@@ -155,7 +142,7 @@ const Checkout = () => {
             </div>
 
             <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-body font-semibold uppercase tracking-wide h-12 mt-4">
-              {loading ? <Loader2 size={18} className="animate-spin" /> : `Place Order — $${total.toFixed(2)}`}
+              {loading ? <Loader2 size={18} className="animate-spin" /> : `Place Order — KES ${total.toFixed(2)}`}
             </Button>
           </form>
 
@@ -170,16 +157,16 @@ const Checkout = () => {
                     <div className="flex-1">
                       <p className="font-body text-xs font-medium text-foreground line-clamp-1">{item.name}</p>
                       <p className="font-body text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="font-body text-xs font-semibold text-foreground">${((item.salePrice ?? item.price) * item.quantity).toFixed(2)}</p>
+                      <p className="font-body text-xs font-semibold text-foreground">KES {((item.salePrice ?? item.price) * item.quantity).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="border-t border-border pt-3 space-y-2 font-body text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>${tax.toFixed(2)}</span></div>
-                <div className="flex justify-between border-t border-border pt-2 font-semibold"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>KES {subtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : `KES ${shipping.toFixed(2)}`}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>KES {tax.toFixed(2)}</span></div>
+                <div className="flex justify-between border-t border-border pt-2 font-semibold"><span>Total</span><span>KES {total.toFixed(2)}</span></div>
               </div>
             </div>
           </div>

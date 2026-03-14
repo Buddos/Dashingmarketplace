@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,12 +50,14 @@ export default function AdminTeam() {
   }, []);
 
   const fetchMembers = async () => {
-    const { data } = await supabase
-      .from("team_members")
-      .select("*")
-      .order("sort_order", { ascending: true });
-    setMembers(data || []);
-    setLoading(false);
+    try {
+      const data = await api.fetch("/api/team");
+      setMembers(data || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openCreate = () => {
@@ -94,34 +96,37 @@ export default function AdminTeam() {
       is_founder: form.is_founder,
     };
 
-    if (editing) {
-      const { error } = await supabase.from("team_members").update(payload).eq("id", editing.id);
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
+    try {
+      if (editing) {
+        await api.fetch(`/api/team/${editing.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
         toast({ title: "Member updated" });
-      }
-    } else {
-      const { error } = await supabase.from("team_members").insert(payload);
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
+        await api.fetch("/api/team", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
         toast({ title: "Member added" });
       }
+      setDialogOpen(false);
+      fetchMembers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setDialogOpen(false);
-    fetchMembers();
   };
 
   const deleteMember = async (id: string) => {
     if (!confirm("Remove this team member?")) return;
-    const { error } = await supabase.from("team_members").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.fetch(`/api/team/${id}`, { method: "DELETE" });
       toast({ title: "Member removed" });
       fetchMembers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 

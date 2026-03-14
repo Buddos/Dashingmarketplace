@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const Register = () => {
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from || "/";
@@ -35,20 +36,13 @@ const Register = () => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: window.location.origin,
-      },
-    });
+    const { error } = await signUp(email.trim(), password, fullName.trim());
     setLoading(false);
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Check your email to confirm your account!");
-      navigate("/login", { state: { from } });
+      toast.success("Registration successful! Welcome to DASHING.");
+      navigate(from, { replace: true });
     }
   };
 

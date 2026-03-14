@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,34 +39,37 @@ export default function AdminOrders() {
   }, []);
 
   const fetchOrders = async () => {
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setOrders(data || []);
-    setLoading(false);
+    try {
+      const data = await api.fetch("/api/orders");
+      setOrders(data || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.fetch(`/api/orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
       toast({ title: `Order marked ${status}` });
       fetchOrders();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
   const viewDetails = async (order: any) => {
     setSelected(order);
-    const { data } = await supabase
-      .from("order_items")
-      .select("*")
-      .eq("order_id", order.id);
-    setItems(data || []);
+    try {
+      const data = await api.fetch(`/api/orders/${order.id}/items`);
+      setItems(data || []);
+    } catch (err: any) {
+      toast({ title: "Error fetching items", description: err.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -93,7 +96,7 @@ export default function AdminOrders() {
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">
-                    #{order.id.slice(0, 8)}
+                    #{String(order.id).slice(0, 8)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {order.shipping_name || "Guest"} •{" "}
@@ -101,7 +104,7 @@ export default function AdminOrders() {
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-foreground">
-                  ${Number(order.total).toFixed(2)}
+                  KES {Number(order.total).toFixed(2)}
                 </p>
                 <Select
                   value={order.status}
@@ -133,7 +136,7 @@ export default function AdminOrders() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              Order #{selected?.id.slice(0, 8)}
+              Order #{String(selected?.id).slice(0, 8)}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -176,7 +179,7 @@ export default function AdminOrders() {
                       {item.product_name} × {item.quantity}
                     </span>
                     <span className="text-muted-foreground">
-                      ${(Number(item.price) * item.quantity).toFixed(2)}
+                      KES {(Number(item.price) * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -185,19 +188,19 @@ export default function AdminOrders() {
               <div className="border-t border-border pt-3 space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-foreground">${Number(selected.subtotal).toFixed(2)}</span>
+                  <span className="text-foreground">KES {Number(selected.subtotal).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax</span>
-                  <span className="text-foreground">${Number(selected.tax).toFixed(2)}</span>
+                  <span className="text-foreground">KES {Number(selected.tax).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span className="text-foreground">${Number(selected.shipping).toFixed(2)}</span>
+                  <span className="text-foreground">KES {Number(selected.shipping).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-foreground">
                   <span>Total</span>
-                  <span>${Number(selected.total).toFixed(2)}</span>
+                  <span>KES {Number(selected.total).toFixed(2)}</span>
                 </div>
               </div>
             </div>

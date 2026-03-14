@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ interface Review {
   status: string;
   created_at: string;
   product_name?: string;
-  user_name?: string;
+  author_name?: string;
 }
 
 export default function AdminReviews() {
@@ -30,44 +30,37 @@ export default function AdminReviews() {
   }, []);
 
   const fetchReviews = async () => {
-    const [{ data: reviewsData }, { data: products }, { data: profiles }] = await Promise.all([
-      supabase.from("reviews").select("*").order("created_at", { ascending: false }),
-      supabase.from("products").select("id, name"),
-      supabase.from("profiles").select("id, full_name"),
-    ]);
-
-    const productMap = new Map((products || []).map((p) => [p.id, p.name]));
-    const profileMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
-
-    setReviews(
-      (reviewsData || []).map((r) => ({
-        ...r,
-        status: r.status || "pending",
-        product_name: productMap.get(r.product_id) || "Unknown",
-        user_name: profileMap.get(r.user_id) || "Unknown",
-      }))
-    );
-    setLoading(false);
+    try {
+      const data = await api.fetch("/api/admin/reviews");
+      setReviews(data || []);
+    } catch (err: any) {
+      toast({ title: "Error fetching reviews", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("reviews").update({ status }).eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.fetch(`/api/admin/reviews/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
       toast({ title: `Review ${status}` });
       fetchReviews();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
   const deleteReview = async (id: string) => {
     if (!confirm("Delete this review permanently?")) return;
-    const { error } = await supabase.from("reviews").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.fetch(`/api/admin/reviews/${id}`, { method: "DELETE" });
       toast({ title: "Review deleted" });
       fetchReviews();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
@@ -130,7 +123,7 @@ export default function AdminReviews() {
                         />
                       ))}
                       <span className="text-xs text-muted-foreground ml-2">
-                        by {review.user_name} • {new Date(review.created_at).toLocaleDateString()}
+                        by {review.author_name || "Unknown"} • {new Date(review.created_at).toLocaleDateString()}
                       </span>
                     </div>
                     {review.title && (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, ShoppingBag, Trash2, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
@@ -26,37 +26,38 @@ const Wishlist = () => {
 
   const fetchWishlist = async () => {
     if (!user) { setLoading(false); return; }
-    const { data, error } = await supabase
-      .from("wishlist")
-      .select("id, product_id, products(id, name, slug, price, sale_price, image_url, badge)")
-      .eq("user_id", user.id);
-
-    if (!error && data) {
-      setItems(
-        data
-          .filter((w: any) => w.products)
-          .map((w: any) => ({
-            wishlistId: w.id,
-            id: w.products.id,
-            name: w.products.name,
-            slug: w.products.slug,
-            price: w.products.price,
-            salePrice: w.products.sale_price,
-            imageUrl: w.products.image_url,
-            badge: w.products.badge,
+    try {
+      const data = await api.fetch("/api/wishlist");
+      if (data) {
+        setItems(
+          data.map((item: any) => ({
+            wishlistId: item.id,
+            id: item.product_id,
+            name: item.name,
+            slug: item.slug,
+            price: item.price,
+            salePrice: item.sale_price,
+            imageUrl: item.image_url,
+            badge: item.badge,
           }))
-      );
+        );
+      }
+    } catch (err: any) {
+      toast.error("Failed to load wishlist");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { fetchWishlist(); }, [user]);
 
   const removeItem = async (wishlistId: string) => {
-    const { error } = await supabase.from("wishlist").delete().eq("id", wishlistId);
-    if (!error) {
+    try {
+      await api.fetch(`/api/wishlist?id=${wishlistId}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((i) => i.wishlistId !== wishlistId));
       toast.success("Removed from wishlist");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove item");
     }
   };
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,13 +67,16 @@ export default function AdminProducts() {
   }, []);
 
   const fetchData = async () => {
-    const [{ data: prods }, { data: cats }] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
-      supabase.from("categories").select("id, name"),
-    ]);
-    setProducts(prods || []);
-    setCategories(cats || []);
-    setLoading(false);
+    try {
+      const prods = await api.fetch("/api/products");
+      const cats = await api.fetch("/api/categories");
+      setProducts(prods || []);
+      setCategories(cats || []);
+    } catch (err: any) {
+      toast({ title: "Error fetching data", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openCreate = () => {
@@ -116,37 +119,37 @@ export default function AdminProducts() {
       category_id: form.category_id ? parseInt(form.category_id) : null,
     };
 
-    if (editing) {
-      const { error } = await supabase
-        .from("products")
-        .update(payload)
-        .eq("id", editing.id);
-      if (error) {
-        toast({ title: "Error updating product", description: error.message, variant: "destructive" });
-      } else {
+    try {
+      if (editing) {
+        await api.fetch(`/api/products?id=${editing.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
         toast({ title: "Product updated" });
-      }
-    } else {
-      const { error } = await supabase.from("products").insert(payload);
-      if (error) {
-        toast({ title: "Error creating product", description: error.message, variant: "destructive" });
       } else {
+        await api.fetch("/api/products", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
         toast({ title: "Product created" });
       }
+      setDialogOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Error saving product", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setDialogOpen(false);
-    fetchData();
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this product?")) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Error deleting", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.fetch(`/api/products?id=${id}`, { method: "DELETE" });
       toast({ title: "Product deleted" });
       fetchData();
+    } catch (err: any) {
+      toast({ title: "Error deleting", description: err.message, variant: "destructive" });
     }
   };
 
@@ -188,10 +191,10 @@ export default function AdminProducts() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground truncate">{p.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    ${p.price.toFixed(2)}
+                    KES {p.price.toFixed(2)}
                     {p.sale_price && (
                       <span className="ml-2 text-destructive">
-                        Sale: ${p.sale_price.toFixed(2)}
+                        Sale: KES {p.sale_price.toFixed(2)}
                       </span>
                     )}
                     <span className="ml-2">• Stock: {p.stock_quantity}</span>

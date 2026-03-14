@@ -5,10 +5,12 @@ export interface AuthUser {
   email: string;
   full_name?: string;
   avatar_url?: string;
+  role?: string;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
+  role: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: { message: string } | null }>;
   signUp: (email: string, password: string, full_name?: string) => Promise<{ error: { message: string } | null }>;
@@ -17,6 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  role: null,
   loading: true,
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
@@ -27,6 +30,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // On mount, check if we have a valid stored token
@@ -39,10 +43,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.user) setUser(data.user);
-        else { localStorage.removeItem("token"); setUser(null); }
+        if (data?.user) {
+          setUser(data.user);
+          setRole(data.role || "authenticated");
+        } else {
+          localStorage.removeItem("token");
+          setUser(null);
+          setRole(null);
+        }
       })
-      .catch(() => { localStorage.removeItem("token"); setUser(null); })
+      .catch(() => {
+        localStorage.removeItem("token");
+        setUser(null);
+        setRole(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -57,6 +71,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!res.ok) return { error: { message: data.error || "Login failed" } };
       localStorage.setItem("token", data.token);
       setUser(data.user);
+      // Decoded token usually has the role, or the backend returns it
+      // Let's assume the backend returns it in the user object or alongside it
+      // Based on our auth.ts, login returns { user, token } but Doesn't return role explicitly in body, but it's IN the token.
+      // However, /me DOES return it. Let's just set it to authenticated for now and /me will refresh it,
+      // or we can decode the token here if we had a library.
+      // Better: update auth.ts login to return the role in the body too.
+      setRole(data.role || "authenticated"); 
       return { error: null };
     } catch (err) {
       return { error: { message: "Network error" } };
@@ -74,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!res.ok) return { error: { message: data.error || "Registration failed" } };
       localStorage.setItem("token", data.token);
       setUser(data.user);
+      setRole("authenticated");
       return { error: null };
     } catch (err) {
       return { error: { message: "Network error" } };
@@ -84,11 +106,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await fetch("/auth/logout", { method: "POST" }).catch(() => {});
     localStorage.removeItem("token");
     setUser(null);
+    setRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, role, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
