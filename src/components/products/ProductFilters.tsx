@@ -11,17 +11,10 @@ interface ProductFiltersProps {
 }
 
 const priceRanges: { label: string; range: [number, number] }[] = [
-<<<<<<< HEAD
   { label: "Under KES 100", range: [0, 100] },
   { label: "KES 100 – KES 200", range: [100, 200] },
   { label: "KES 200 – KES 300", range: [200, 300] },
   { label: "Over KES 300", range: [300, 9999] },
-=======
-  { label: "Under $100", range: [0, 100] },
-  { label: "$100 – $200", range: [100, 200] },
-  { label: "$200 – $300", range: [200, 300] },
-  { label: "Over $300", range: [300, 9999] },
->>>>>>> d8ee225b34a77d6534bba2b79f64a8693526ab7b
 ];
 
 const ProductFilters = ({

@@ -1,70 +1,54 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useSellerCheck } from "@/hooks/useSellerCheck";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Package,
   ShoppingCart,
   BarChart3,
-  LogOut,
   Store,
+  LogOut,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const navItems = [
   { label: "Dashboard", path: "/seller", icon: LayoutDashboard },
-  { label: "Products", path: "/seller/products", icon: Package },
+  { label: "My Products", path: "/seller/products", icon: Package },
   { label: "Orders", path: "/seller/orders", icon: ShoppingCart },
   { label: "Analytics", path: "/seller/analytics", icon: BarChart3 },
 ];
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
-  const { isSeller, loading } = useSellerCheck();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="space-y-4 w-64">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-8 w-1/2" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!isSeller) {
+  if (!user) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-background gap-4">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have seller privileges.</p>
+          <p className="text-muted-foreground">You need to be logged in to access the Seller Dashboard.</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate("/")}>Back to Store</Button>
-          <Button onClick={() => navigate("/seller/register")}>Become a Seller</Button>
-        </div>
+        <Button onClick={() => navigate("/seller/login")}>Seller Login</Button>
       </div>
     );
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Sidebar */}
       <aside className="w-64 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col">
         <div className="p-5 border-b border-sidebar-border">
           <Link to="/seller" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Store className="h-4 w-4 text-sidebar-primary-foreground" />
+            <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+              <Store className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold text-sidebar-foreground tracking-tight">
-              Seller Panel
-            </span>
+            <div>
+              <span className="text-lg font-bold text-sidebar-foreground tracking-tight block">Seller Hub</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[140px] block">{user.email}</span>
+            </div>
           </Link>
         </div>
 
@@ -77,7 +61,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
                 to={item.path}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-sidebar-accent text-sidebar-primary"
+                    ? "bg-emerald-600/10 text-emerald-600"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 }`}
               >
@@ -95,7 +79,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             <Store className="h-4 w-4" />
-            View Store
+            Visit Store
           </Link>
           <button
             onClick={signOut}
@@ -107,6 +91,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      {/* Main content */}
       <main className="flex-1 overflow-y-auto">
         <div className="p-6 lg:p-8">{children}</div>
       </main>
