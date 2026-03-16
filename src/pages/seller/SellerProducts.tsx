@@ -57,7 +57,7 @@ export default function SellerProducts() {
     <div key={key}>
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-        className="w-full mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        className="w-full mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent" />
     </div>
   );
 
@@ -68,7 +68,7 @@ export default function SellerProducts() {
           <h1 className="text-2xl font-bold text-foreground">My Products</h1>
           <p className="text-sm text-muted-foreground mt-1">{products.length} listings</p>
         </div>
-        <Button onClick={openNew} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        <Button onClick={openNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium">
           <PlusCircle size={16} className="mr-2" /> Add Product
         </Button>
       </div>
@@ -120,7 +120,7 @@ export default function SellerProducts() {
             {field("image_url", "Image URL")}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white">Save</Button>
+              <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium">Save</Button>
             </div>
           </div>
         </DialogContent>

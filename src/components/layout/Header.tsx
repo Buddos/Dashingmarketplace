@@ -106,8 +106,9 @@ const Header = () => {
                 <LogOut size={20} />
               </button>
             ) : (
-              <Link to="/login" className="hidden md:flex p-2 text-foreground hover:text-accent transition-colors" aria-label="Account">
+              <Link to="/login" className="hidden md:flex items-center gap-2 p-2 text-foreground hover:text-accent transition-colors" aria-label="Account">
                 <User size={20} />
+                <span className="text-sm font-medium font-body uppercase tracking-wide">Sign In</span>
               </Link>
             )}
           </div>

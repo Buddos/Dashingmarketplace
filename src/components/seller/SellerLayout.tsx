@@ -42,7 +42,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
       <aside className="w-64 shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col">
         <div className="p-5 border-b border-sidebar-border">
           <Link to="/seller" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
               <Store className="h-4 w-4 text-white" />
             </div>
             <div>
@@ -61,7 +61,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
                 to={item.path}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-emerald-600/10 text-emerald-600"
+                    ? "bg-accent/10 text-accent"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 }`}
               >

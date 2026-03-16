@@ -46,7 +46,7 @@ export default function SellerDashboard() {
         </div>
         <Link
           to="/seller/products"
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
         >
           <PlusCircle size={16} />
           Add Product
@@ -56,10 +56,10 @@ export default function SellerDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: "Total Products", value: stats.products, icon: Package, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Total Orders", value: stats.orders, icon: ShoppingCart, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "Total Revenue", value: `KES ${stats.revenue.toLocaleString()}`, icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50" },
-          { label: "Reviews", value: stats.reviews, icon: Star, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "Total Products", value: stats.products, icon: Package, color: "text-accent", bg: "bg-accent/10" },
+          { label: "Total Orders", value: stats.orders, icon: ShoppingCart, color: "text-accent", bg: "bg-accent/10" },
+          { label: "Total Revenue", value: `KES ${stats.revenue.toLocaleString()}`, icon: TrendingUp, color: "text-accent", bg: "bg-accent/10" },
+          { label: "Reviews", value: stats.reviews, icon: Star, color: "text-accent", bg: "bg-accent/10" },
         ].map((s) => (
           <Card key={s.label} className="border-border/50">
             <CardContent className="p-5 flex items-center gap-4">
@@ -79,7 +79,7 @@ export default function SellerDashboard() {
       <Card className="border-border/50">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-semibold">Recent Orders</CardTitle>
-          <Link to="/seller/orders" className="text-sm text-emerald-600 hover:underline flex items-center gap-1">
+          <Link to="/seller/orders" className="text-sm text-accent hover:underline flex items-center gap-1">
             View all <ArrowRight size={14} />
           </Link>
         </CardHeader>
@@ -120,10 +120,10 @@ export default function SellerDashboard() {
           { title: "View Analytics", desc: "See your sales performance", to: "/seller/analytics", icon: TrendingUp },
         ].map((card) => (
           <Link key={card.to} to={card.to} className="group">
-            <Card className="border-border/50 hover:border-emerald-500/50 hover:shadow-md transition-all">
+            <Card className="border-border/50 hover:border-accent/50 hover:shadow-md transition-all">
               <CardContent className="p-5">
-                <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition-colors">
-                  <card.icon className="h-5 w-5 text-emerald-600" />
+                <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
+                  <card.icon className="h-5 w-5 text-accent" />
                 </div>
                 <p className="font-semibold text-foreground">{card.title}</p>
                 <p className="text-sm text-muted-foreground mt-1">{card.desc}</p>

@@ -70,7 +70,7 @@ export default function SellerAnalytics() {
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `KES ${Number(v).toLocaleString()}`} />
                 <Tooltip formatter={(v: number) => [`KES ${v.toLocaleString()}`, "Revenue"]} />
-                <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2} dot={{ fill: "#059669" }} />
+                <Line type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} dot={{ fill: "#f59e0b" }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -88,7 +88,7 @@ export default function SellerAnalytics() {
                 <XAxis dataKey="status" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#059669" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
