@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const Login = () => {
-  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from || "/";
@@ -31,13 +30,46 @@ const Login = () => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    const { error } = await signIn(email.trim(), password);
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Welcome back!");
-      navigate(from, { replace: true });
+
+    try {
+      // 1️⃣ Sign in via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError || !authData.user) {
+        toast.error(authError?.message || "Login failed");
+        setLoading(false);
+        return;
+      }
+
+      // 2️⃣ Fetch user role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+
+      if (roleError) {
+        console.error("Error fetching role:", roleError);
+      }
+
+      // 3️⃣ Redirect based on role
+      const userRole = roleData?.role;
+      if (userRole === "admin") {
+        navigate("/admin", { replace: true });
+        toast.success("Welcome back Admin!");
+      } else {
+        navigate(from, { replace: true });
+        toast.success("Welcome back!");
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,14 +108,22 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {errors.password && <p className="font-body text-xs text-destructive mt-1">{errors.password}</p>}
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-body font-semibold uppercase tracking-wide">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-body font-semibold uppercase tracking-wide"
+          >
             {loading ? <Loader2 size={18} className="animate-spin" /> : "Sign In"}
           </Button>
         </form>

@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 function authHeaders() {
   const token = localStorage.getItem("token");
@@ -19,6 +20,8 @@ export default function SellerProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { fetchProducts(); }, []);
@@ -29,17 +32,44 @@ export default function SellerProducts() {
       .then(data => { setProducts(Array.isArray(data) ? data : []); setLoading(false); });
   };
 
-  const openNew = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setForm(emptyForm); setSelectedFile(null); setDialogOpen(true); };
   const openEdit = (p: any) => {
     setEditing(p);
     setForm({ name: p.name, slug: p.slug, description: p.description, price: String(p.price), sale_price: String(p.sale_price ?? ""), stock_quantity: String(p.stock_quantity), image_url: p.image_url ?? "", badge: p.badge ?? "" });
+    setSelectedFile(null);
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
+    setUploading(true);
+    let finalImageUrl = form.image_url;
+
+    if (selectedFile) {
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `product-images/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('products') // Assuming 'products' bucket exists
+        .upload(filePath, selectedFile);
+
+      if (uploadError) {
+        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+        setUploading(false);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+      
+      finalImageUrl = publicUrl;
+    }
+
     const url = editing ? `/api/products/${editing.id}` : "/api/products";
     const method = editing ? "PUT" : "POST";
-    const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify({ ...form, price: Number(form.price), sale_price: form.sale_price ? Number(form.sale_price) : null, stock_quantity: Number(form.stock_quantity) }) });
+    const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify({ ...form, image_url: finalImageUrl, price: Number(form.price), sale_price: form.sale_price ? Number(form.sale_price) : null, stock_quantity: Number(form.stock_quantity) }) });
+    setUploading(false);
     if (!res.ok) { toast({ title: "Save failed", variant: "destructive" }); return; }
     toast({ title: editing ? "Product updated" : "Product created" });
     setDialogOpen(false);
@@ -117,10 +147,28 @@ export default function SellerProducts() {
               {field("stock_quantity", "Stock", "number")}
               {field("badge", "Badge (optional)")}
             </div>
-            {field("image_url", "Image URL")}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Product Image</label>
+              <div className="mt-1 flex items-center gap-3">
+                {(selectedFile || form.image_url) && (
+                  <img src={selectedFile ? URL.createObjectURL(selectedFile) : form.image_url} alt="Preview" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                )}
+                <div className="flex-1">
+                  <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                      <Upload size={16} className="text-muted-foreground mb-1" />
+                      <p className="text-[10px] text-muted-foreground">Click to upload image</p>
+                    </div>
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+                  </label>
+                </div>
+              </div>
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium">Save</Button>
+              <Button onClick={handleSave} disabled={uploading} className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium">
+                {uploading ? "Saving..." : "Save"}
+              </Button>
             </div>
           </div>
         </DialogContent>
