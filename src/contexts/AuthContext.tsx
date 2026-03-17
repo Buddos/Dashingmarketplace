@@ -40,16 +40,24 @@ function mapUser(u: User): AuthUser {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(localStorage.getItem("user_role"));
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    return data?.role ?? "authenticated";
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const r = data?.role ?? "authenticated";
+      setRole(r);
+      localStorage.setItem("user_role", r);
+      return r;
+    } catch (e) {
+      console.error("Error fetching role:", e);
+      return role ?? "authenticated";
+    }
   };
 
   useEffect(() => {
@@ -57,23 +65,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          setUser(mapUser(session.user));
-          const r = await fetchRole(session.user.id);
-          setRole(r);
+          const newUser = mapUser(session.user);
+          setUser(newUser);
+          // Fetch role in background if we don't have a session user or if user changed
+          fetchRole(session.user.id);
         } else {
           setUser(null);
           setRole(null);
+          localStorage.removeItem("user_role");
         }
         setLoading(false);
       }
     );
 
     // Then check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(mapUser(session.user));
-        const r = await fetchRole(session.user.id);
-        setRole(r);
+        fetchRole(session.user.id);
       }
       setLoading(false);
     });
@@ -101,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     setUser(null);
     setRole(null);
+    localStorage.removeItem("user_role");
   };
 
   return (
