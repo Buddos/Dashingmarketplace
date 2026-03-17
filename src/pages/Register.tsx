@@ -37,9 +37,20 @@ const Register = () => {
     if (!validate()) return;
     setLoading(true);
     const { error } = await signUp(email.trim(), password, fullName.trim());
-    setLoading(false);
+    
     if (error) {
+      setLoading(false);
       toast.error(error.message);
+      return;
+    }
+
+    // Check if session exists
+    const { data: { session } } = await supabase.auth.getSession();
+    setLoading(false);
+
+    if (!session) {
+      toast.info("Registration successful! Please check your email to confirm your account.");
+      navigate("/login");
     } else {
       toast.success("Registration successful! Welcome to DASHING.");
       navigate(from, { replace: true });

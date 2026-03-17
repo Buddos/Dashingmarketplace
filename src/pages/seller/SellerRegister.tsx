@@ -19,14 +19,20 @@ export default function SellerRegister() {
     const { error: err } = await signUp(form.email, form.password, form.full_name, form.shop_description);
     if (err) { setError(err.message ?? "Registration failed"); setLoading(false); return; }
 
-    // Wait for session to be established, then assign seller role
+    // Check if session exists (will be null if email confirmation is required)
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      await supabase.from("user_roles").insert({
-        user_id: session.user.id,
-        role: "seller" as const,
-      });
+    
+    if (!session) {
+      setLoading(false);
+      setError("Registration successful! Please check your email to confirm your account before logging in.");
+      return;
     }
+
+    // If session exists, assign seller role and navigate
+    await supabase.from("user_roles").insert({
+      user_id: session.user.id,
+      role: "seller" as const,
+    });
 
     setLoading(false);
     navigate("/seller");
