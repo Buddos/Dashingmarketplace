@@ -137,7 +137,7 @@ export default function SellerProducts() {
           </DialogHeader>
           <div className="space-y-3 mt-2">
             {field("name", "Name")}
-            {field("slug", "Slug (URL-safe name)")}
+            {field("slug", "Slug (optional, URL-safe name)")}
             {field("description", "Description")}
             <div className="grid grid-cols-2 gap-3">
               {field("price", "Price (KES)", "number")}

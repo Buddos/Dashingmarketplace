@@ -35,6 +35,18 @@ function requireAdmin(event: HandlerEvent): AuthUser | null {
   return user?.role === "admin" ? user : null;
 }
 
+function requireSellerOrAdmin(event: HandlerEvent): AuthUser | null {
+  const user = getUser(event);
+  return (user?.role === "admin" || user?.role === "seller") ? user : null;
+}
+
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 export const handler = async (
   event: HandlerEvent,
   _context: HandlerContext
@@ -74,22 +86,49 @@ export const handler = async (
     }
 
     if (route === "/products" && event.httpMethod === "POST") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      const user = requireSellerOrAdmin(event);
+      if (!user) return makeResponse(403, { error: "Forbidden" });
       const body = JSON.parse(event.body ?? "{}");
-      const { name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge } = body;
+      let { name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge } = body;
+      
+      if (!slug || slug.trim() === "") {
+        slug = generateSlug(name);
+      }
+
       const rows = await sql`
         INSERT INTO public.products (name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge)
         VALUES (${name}, ${slug}, ${description ?? ""}, ${price}, ${sale_price ?? null}, ${stock_quantity ?? 0}, ${category_id ?? null}, ${image_url ?? null}, ${badge ?? null})
         RETURNING *
       `;
-      return makeResponse(201, rows[0]);
+      const product = rows[0];
+
+      if (user.role === "seller") {
+        await sql`
+          INSERT INTO public.seller_products (product_id, seller_id)
+          VALUES (${product.id}, ${user.id})
+        `;
+      }
+
+      return makeResponse(201, product);
     }
 
     if (route.match(/^\/products\/\d+$/) && event.httpMethod === "PUT") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      const user = requireSellerOrAdmin(event);
+      if (!user) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
       const body = JSON.parse(event.body ?? "{}");
-      const { name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge } = body;
+      let { name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge } = body;
+
+      // Basic ownership check for sellers
+      if (user.role === "seller") {
+        const ownership = await sql`SELECT 1 FROM public.seller_products WHERE product_id = ${id} AND seller_id = ${user.id}`;
+        if (ownership.length === 0) return makeResponse(403, { error: "Forbidden: Not your product" });
+      }
+
+      if (!slug || slug.trim() === "") {
+        slug = generateSlug(name);
+      }
+
       const rows = await sql`
         UPDATE public.products SET
           name = ${name}, slug = ${slug}, description = ${description ?? ""},
@@ -101,8 +140,15 @@ export const handler = async (
     }
 
     if (route.match(/^\/products\/\d+$/) && event.httpMethod === "DELETE") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      const user = requireSellerOrAdmin(event);
+      if (!user) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
+
+      if (user.role === "seller") {
+        const ownership = await sql`SELECT 1 FROM public.seller_products WHERE product_id = ${id} AND seller_id = ${user.id}`;
+        if (ownership.length === 0) return makeResponse(403, { error: "Forbidden" });
+      }
+
       await sql`DELETE FROM public.products WHERE id = ${id}`;
       return makeResponse(200, { success: true });
     }
