@@ -1,10 +1,18 @@
+<<<<<<< HEAD
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation, type Location } from "react-router-dom";
+=======
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+<<<<<<< HEAD
 import { supabase } from "@/integrations/supabase/client";
+=======
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -12,8 +20,12 @@ const Register = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+<<<<<<< HEAD
   const state = location.state as { from?: Location } | null;
   const from = state?.from?.pathname || "/";
+=======
+  const from = (location.state as any)?.from || "/";
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +46,11 @@ const Register = () => {
     return Object.keys(e).length === 0;
   };
 
+<<<<<<< HEAD
   const handleSubmit = async (e: FormEvent) => {
+=======
+  const handleSubmit = async (e: React.FormEvent) => {
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
@@ -46,6 +62,7 @@ const Register = () => {
       return;
     }
 
+<<<<<<< HEAD
     // Check if session exists (email confirmation is disabled)
     const { data: { session } } = await supabase.auth.getSession();
     setLoading(false);
@@ -57,6 +74,18 @@ const Register = () => {
       // Fallback for cases where session might not be immediately available
       toast.info("Registration successful! Redirecting to login...");
       navigate("/login", { state: { from } });
+=======
+    // Check if session exists
+    const { data: { session } } = await supabase.auth.getSession();
+    setLoading(false);
+
+    if (!session) {
+      toast.info("Registration successful! Please check your email to confirm your account.");
+      navigate("/login");
+    } else {
+      toast.success("Registration successful! Welcome to DASHING.");
+      navigate(from, { replace: true });
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     }
   };
 

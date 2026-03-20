@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation, type Location } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+=======
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +14,17 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const Login = () => {
+<<<<<<< HEAD
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as { from?: Location } | null;
   const from = state?.from?.pathname || "/";
+=======
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from || "/";
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,20 +40,36 @@ const Login = () => {
     return Object.keys(e).length === 0;
   };
 
+<<<<<<< HEAD
   const handleSubmit = async (e: FormEvent) => {
+=======
+  const handleSubmit = async (e: React.FormEvent) => {
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
 
     try {
+<<<<<<< HEAD
       const { error, role } = await signIn(email.trim(), password);
 
       if (error) {
         toast.error(error.message || "Login failed");
+=======
+      // 1️⃣ Sign in via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError || !authData.user) {
+        toast.error(authError?.message || "Login failed");
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
         setLoading(false);
         return;
       }
 
+<<<<<<< HEAD
       // Redirect based on role
       if (role === "admin") {
         navigate("/admin", { replace: true });
@@ -49,14 +77,38 @@ const Login = () => {
       } else if (role === "seller") {
         navigate("/seller", { replace: true });
         toast.success("Welcome back to your Seller Dashboard!");
+=======
+      // 2️⃣ Fetch user role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+
+      if (roleError) {
+        console.error("Error fetching role:", roleError);
+      }
+
+      // 3️⃣ Redirect based on role
+      const userRole = roleData?.role;
+      if (userRole === "admin") {
+        navigate("/admin", { replace: true });
+        toast.success("Welcome back Admin!");
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
       } else {
         navigate(from, { replace: true });
         toast.success("Welcome back!");
       }
 
+<<<<<<< HEAD
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong during login");
+=======
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Something went wrong");
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     } finally {
       setLoading(false);
     }

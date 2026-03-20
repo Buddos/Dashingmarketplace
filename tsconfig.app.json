@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
+<<<<<<< HEAD
     "baseUrl": ".",
     "typeRoots": ["./node_modules/@types"],
+=======
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
@@ -21,9 +24,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+<<<<<<< HEAD
       ],
       "@supabase/supabase-js": [
         "./node_modules/@supabase/supabase-js/dist/index.d.mts"
+=======
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
       ]
     },
     "skipLibCheck": true,

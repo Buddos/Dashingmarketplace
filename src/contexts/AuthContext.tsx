@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+=======
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -13,7 +17,11 @@ interface AuthContextType {
   user: AuthUser | null;
   role: string | null;
   loading: boolean;
+<<<<<<< HEAD
   signIn: (email: string, password: string) => Promise<{ error: { message: string } | null; role: string | null }>;
+=======
+  signIn: (email: string, password: string) => Promise<{ error: { message: string } | null }>;
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   signUp: (email: string, password: string, full_name?: string, shop_description?: string) => Promise<{ error: { message: string } | null }>;
   signOut: () => Promise<void>;
 }
@@ -22,7 +30,11 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
   loading: true,
+<<<<<<< HEAD
   signIn: async () => ({ error: null, role: null }),
+=======
+  signIn: async () => ({ error: null }),
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   signUp: async () => ({ error: null }),
   signOut: async () => {},
 });
@@ -43,7 +55,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(localStorage.getItem("user_role"));
   const [loading, setLoading] = useState(true);
 
+<<<<<<< HEAD
   const fetchRole = useCallback(async (userId: string) => {
+=======
+  const fetchRole = async (userId: string) => {
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     try {
       const { data } = await supabase
         .from("user_roles")
@@ -58,7 +74,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error fetching role:", e);
       return role ?? "authenticated";
     }
+<<<<<<< HEAD
   }, [role]);
+=======
+  };
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 
   useEffect(() => {
     // Set up listener FIRST
@@ -88,6 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
+<<<<<<< HEAD
   }, [fetchRole]);
 
   const signIn = async (email: string, password: string) => {
@@ -97,6 +118,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Explicitly fetch role for immediate redirection in components
     const role = await fetchRole(data.user.id);
     return { error: null, role };
+=======
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: { message: error.message } };
+    return { error: null };
+>>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   };
 
   const signUp = async (email: string, password: string, full_name?: string, _shop_description?: string) => {
