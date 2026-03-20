@@ -1,22 +1,14 @@
-<<<<<<< HEAD
 import { useState, type FormEvent } from "react";
-=======
-import { useState } from "react";
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Store } from "lucide-react";
-<<<<<<< HEAD
 import { toast } from "sonner";
-=======
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 
 export default function SellerRegister() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "", full_name: "", confirm: "", shop_description: "" });
-<<<<<<< HEAD
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,36 +44,6 @@ export default function SellerRegister() {
       toast.info("Registration successful! Redirecting to login...");
       navigate("/seller/login");
     }
-=======
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (form.password !== form.confirm) { setError("Passwords do not match"); return; }
-    setError(""); setLoading(true);
-
-    const { error: err } = await signUp(form.email, form.password, form.full_name, form.shop_description);
-    if (err) { setError(err.message ?? "Registration failed"); setLoading(false); return; }
-
-    // Check if session exists (will be null if email confirmation is required)
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      setLoading(false);
-      setError("Registration successful! Please check your email to confirm your account before logging in.");
-      return;
-    }
-
-    // If session exists, assign seller role and navigate
-    await supabase.from("user_roles").insert({
-      user_id: session.user.id,
-      role: "seller" as const,
-    });
-
-    setLoading(false);
-    navigate("/seller");
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   };
 
   const f = (key: keyof typeof form, label: string, type = "text") => (
@@ -114,11 +76,7 @@ export default function SellerRegister() {
           <p className="text-muted-foreground text-sm mt-1">Create your seller account to start listing products</p>
         </div>
 
-<<<<<<< HEAD
         {errorMessage && <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{errorMessage}</div>}
-=======
-        {error && <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</div>}
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {f("full_name", "Full Name")}

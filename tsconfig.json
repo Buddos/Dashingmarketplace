@@ -10,14 +10,10 @@
       ]
     },
     "skipLibCheck": true,
-<<<<<<< HEAD
     "strictNullChecks": false,
     "moduleResolution": "bundler",
     "module": "esnext",
     "typeRoots": ["./node_modules/@types"]
-=======
-    "strictNullChecks": false
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
   },
   "files": [],
   "references": [

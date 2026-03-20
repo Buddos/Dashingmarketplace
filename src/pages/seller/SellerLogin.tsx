@@ -1,15 +1,8 @@
-<<<<<<< HEAD
 import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
-=======
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Store } from "lucide-react";
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
 
 export default function SellerLogin() {
   const { signIn } = useAuth();
@@ -19,7 +12,6 @@ export default function SellerLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-<<<<<<< HEAD
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(""); setLoading(true);
@@ -40,14 +32,6 @@ export default function SellerLogin() {
 
     toast.success("Welcome back to your Seller Dashboard!");
     setLoading(false);
-=======
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(""); setLoading(true);
-    const { error: err } = await signIn(email, password);
-    setLoading(false);
-    if (err) { setError(err.message ?? "Login failed"); return; }
->>>>>>> f71440a929a942c16f6e3ce4c66fa2867c1b5194
     navigate("/seller");
   };
 
