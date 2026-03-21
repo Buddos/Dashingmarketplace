@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -261,6 +262,9 @@ export default function AdminProducts() {
             <DialogTitle>
               {editing ? "Edit Product" : "New Product"}
             </DialogTitle>
+            <DialogDescription>
+              {editing ? "Update product details and click save." : "Fill in the details to list a new product."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>

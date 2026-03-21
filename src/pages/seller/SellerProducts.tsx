@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { PlusCircle, Pencil, Trash2, Upload, Image as ImageIcon } from "lucide-react";
@@ -148,6 +148,9 @@ export default function SellerProducts() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogDescription>
+              {editing ? "Update product details and click save." : "Fill in the details to list a new product."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             {field("name", "Name")}

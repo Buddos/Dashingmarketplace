@@ -448,6 +448,19 @@ export const handler = async (
       return makeResponse(200, rows[0]);
     }
 
+    // ── AUTH UTILITIES ────────────────────────────────────────────────────────
+    if (route === "/auth/assign-role" && event.httpMethod === "POST") {
+      const { userId, role: targetRole } = JSON.parse(event.body ?? "{}");
+      if (!userId || !targetRole) return makeResponse(400, { error: "Missing userId or role" });
+      
+      await sql`
+        INSERT INTO public.user_roles (user_id, role)
+        VALUES (${userId}, ${targetRole})
+        ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role
+      `;
+      return makeResponse(200, { success: true });
+    }
+
     return makeResponse(404, { error: "Endpoint not found" });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,16 +29,16 @@ export default function SellerRegister() {
     const userId = newUser?.id || session?.user?.id;
     
     if (userId) {
-      const { error: roleError } = await supabase.from("user_roles").upsert({
-        user_id: userId,
-        role: "seller" as const,
-      }, { onConflict: 'user_id' });
-
-      if (roleError) {
-        console.error("Error assigned seller role:", roleError);
-        toast.error("Account created, but there was an error assigning the seller role. Please contact support.");
-      } else {
+      // Use the API to assign the role (bypassing RLS)
+      try {
+        await api.fetch("/api/auth/assign-role", {
+          method: "POST",
+          body: JSON.stringify({ userId, role: "seller" })
+        });
         toast.success("Welcome! Your seller account has been created successfully.");
+      } catch (roleError: any) {
+        console.error("Error assigning seller role via API:", roleError);
+        toast.error(`Error: ${roleError.message || "Failed to assign seller role"}.`);
       }
       
       setLoading(false);
