@@ -17,16 +17,19 @@ export default function SellerRegister() {
     if (form.password !== form.confirm) { setErrorMessage("Passwords do not match"); return; }
     setErrorMessage(""); setLoading(true);
     
-    const { error: err } = await signUp(form.email, form.password, form.full_name, form.shop_description);
-    if (err) { setErrorMessage(err.message ?? "Registration failed"); setLoading(false); return; }
+    const { error: err, user: newUser } = await signUp(form.email, form.password, form.full_name, form.shop_description);
+    if (err) { 
+      setErrorMessage(err.message ?? "Registration failed"); 
+      setLoading(false); 
+      return; 
+    }
 
-    // Check if session exists (email confirmation is disabled)
     const { data: { session } } = await supabase.auth.getSession();
+    const userId = newUser?.id || session?.user?.id;
     
-    if (session) {
-      // If session exists, assign seller role and navigate
+    if (userId) {
       const { error: roleError } = await supabase.from("user_roles").upsert({
-        user_id: session.user.id,
+        user_id: userId,
         role: "seller" as const,
       }, { onConflict: 'user_id' });
 
@@ -38,7 +41,12 @@ export default function SellerRegister() {
       }
       
       setLoading(false);
-      navigate("/seller");
+      if (session) {
+        navigate("/seller");
+      } else {
+        toast.info("Registration successful! Redirecting to login...");
+        navigate("/seller/login");
+      }
     } else {
       setLoading(false);
       toast.info("Registration successful! Redirecting to login...");

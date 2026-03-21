@@ -14,7 +14,7 @@ interface AuthContextType {
   role: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: { message: string } | null; role: string | null }>;
-  signUp: (email: string, password: string, full_name?: string, shop_description?: string) => Promise<{ error: { message: string } | null }>;
+  signUp: (email: string, password: string, full_name?: string, shop_description?: string) => Promise<{ error: { message: string } | null; user: User | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   loading: true,
   signIn: async () => ({ error: null, role: null }),
-  signUp: async () => ({ error: null }),
+  signUp: async () => ({ error: null, user: null }),
   signOut: async () => {},
 });
 
@@ -43,10 +43,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(localStorage.getItem("user_role"));
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = useCallback(async (userId: string) => {
+  const fetchRole = useCallback(async (userId: string, email?: string) => {
     try {
+      const checkEmail = email || user?.email;
       // Hardcoded fallback for the specific admin user requested by the USER
-      if (user?.email === "admin@dashing.com") {
+      if (checkEmail === "admin@dashing.com") {
         setRole("admin");
         localStorage.setItem("user_role", "admin");
         return "admin";
@@ -103,18 +104,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) return { error: { message: error.message }, role: null };
     
     // Explicitly fetch role for immediate redirection in components
-    const role = await fetchRole(data.user.id);
-    return { error: null, role };
+    const roleValue = await fetchRole(data.user.id, email);
+    return { error: null, role: roleValue };
   };
 
   const signUp = async (email: string, password: string, full_name?: string, _shop_description?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: full_name ?? "" } },
     });
-    if (error) return { error: { message: error.message } };
-    return { error: null };
+    if (error) return { error: { message: error.message }, user: null };
+    return { error: null, user: data.user };
   };
 
   const signOut = async () => {
