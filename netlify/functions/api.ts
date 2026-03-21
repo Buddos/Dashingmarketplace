@@ -59,6 +59,16 @@ export const handler = async (
   try {
     // ── PRODUCTS ─────────────────────────────────────────────────────────────
     if (route === "/products" && event.httpMethod === "GET") {
+      const user = getUser(event);
+      if (qs.mine === "true" && user?.role === "seller") {
+        const data = await sql`
+          SELECT p.* FROM public.products p
+          JOIN public.seller_products sp ON sp.product_id = p.id
+          WHERE sp.seller_id = ${user.id}
+          ORDER BY p.created_at DESC
+        `;
+        return makeResponse(200, data);
+      }
       if (qs.search) {
         const data = await sql`SELECT * FROM public.products WHERE name ILIKE ${"%" + qs.search + "%"} ORDER BY created_at DESC`;
         return makeResponse(200, data);

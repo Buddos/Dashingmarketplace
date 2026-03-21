@@ -28,7 +28,7 @@ export default function SellerRegister() {
       const { error: roleError } = await supabase.from("user_roles").upsert({
         user_id: session.user.id,
         role: "seller" as const,
-      });
+      }, { onConflict: 'user_id' });
 
       if (roleError) {
         console.error("Error assigned seller role:", roleError);

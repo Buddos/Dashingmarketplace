@@ -14,13 +14,15 @@ import {
   LogOut,
   Store,
   ChevronRight,
+  Image,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const navItems = [
   { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
-  { label: "Products", path: "/admin/products", icon: Package },
+  { label: "Inventory Catalog", path: "/admin/products", icon: Package },
+  { label: "Manage Products", path: "/admin/assets", icon: Image },
   { label: "Orders", path: "/admin/orders", icon: ShoppingCart },
   { label: "Users", path: "/admin/users", icon: Users },
   { label: "Reviews", path: "/admin/reviews", icon: Star },

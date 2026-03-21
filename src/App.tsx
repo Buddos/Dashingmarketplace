@@ -21,9 +21,11 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Wishlist from "./pages/Wishlist";
 import Support from "./pages/Support";
+import Profile from "./pages/Profile";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminAssets from "./pages/admin/AdminAssets";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminReviews from "./pages/admin/AdminReviews";
@@ -52,6 +54,7 @@ const App = () => (
               {/* Admin routes – no store header/footer */}
               <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
               <Route path="/admin/products" element={<AdminLayout><AdminProducts /></AdminLayout>} />
+              <Route path="/admin/assets" element={<AdminLayout><AdminAssets /></AdminLayout>} />
               <Route path="/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
               <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
               <Route path="/admin/reviews" element={<AdminLayout><AdminReviews /></AdminLayout>} />
@@ -88,6 +91,7 @@ const App = () => (
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/wishlist" element={<Wishlist />} />
                       <Route path="/contact" element={<Contact />} />
+                      <Route path="/profile" element={<Profile />} />
                       <Route path="/faq" element={<Support />} />
                       <Route path="/shipping" element={<Support />} />
                       <Route path="/returns" element={<Support />} />

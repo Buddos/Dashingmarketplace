@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Pencil, Trash2, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -101,25 +103,48 @@ export default function AdminProducts() {
     setDialogOpen(true);
   };
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const handleSave = async () => {
     if (!form.name || !form.slug || !form.price) {
       toast({ title: "Fill required fields", variant: "destructive" });
       return;
     }
     setSaving(true);
-    const payload = {
-      name: form.name,
-      slug: form.slug,
-      description: form.description,
-      price: parseFloat(form.price),
-      sale_price: form.sale_price ? parseFloat(form.sale_price) : null,
-      image_url: form.image_url || null,
-      badge: form.badge || null,
-      stock_quantity: parseInt(form.stock_quantity) || 0,
-      category_id: form.category_id ? parseInt(form.category_id) : null,
-    };
+    
+    let finalImageUrl = form.image_url;
 
     try {
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const filePath = `${fileName}`; // Store in root of 'products' bucket
+
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, selectedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+        
+        finalImageUrl = publicUrl;
+      }
+
+      const payload = {
+        name: form.name,
+        slug: form.slug,
+        description: form.description,
+        price: parseFloat(form.price),
+        sale_price: form.sale_price ? parseFloat(form.sale_price) : null,
+        image_url: finalImageUrl || null,
+        badge: form.badge || null,
+        stock_quantity: parseInt(form.stock_quantity) || 0,
+        category_id: form.category_id ? parseInt(form.category_id) : null,
+      };
+
       if (editing) {
         await api.fetch(`/api/products/${editing.id}`, {
           method: "PUT",
@@ -134,6 +159,7 @@ export default function AdminProducts() {
         toast({ title: "Product created" });
       }
       setDialogOpen(false);
+      setSelectedFile(null);
       fetchData();
     } catch (err: any) {
       toast({ title: "Error saving product", description: err.message, variant: "destructive" });
@@ -314,11 +340,35 @@ export default function AdminProducts() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Image URL</label>
-              <Input
-                value={form.image_url}
-                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium text-foreground">Image</label>
+                <Link to="/admin/assets" className="text-xs text-accent hover:underline flex items-center gap-1">
+                  <ImageIcon className="h-3 w-3" /> Asset Library
+                </Link>
+              </div>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Image URL"
+                  value={form.image_url}
+                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t border-border" />
+                  <span className="text-[10px] text-muted-foreground uppercase">or upload</span>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="cursor-pointer"
+                />
+                {selectedFile && (
+                  <p className="text-[10px] text-accent font-medium">
+                    New file selected: {selectedFile.name}
+                  </p>
+                )}
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Badge</label>

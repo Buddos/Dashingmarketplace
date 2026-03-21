@@ -32,7 +32,13 @@ export const api = {
         } catch {
           err = { error: text || response.statusText };
         }
-        throw new Error(err.error || err.message || response.statusText);
+        
+        let errorMessage = err.error || err.message || response.statusText;
+        if (response.status === 404 && endpoint.startsWith("/api/")) {
+          errorMessage = `API endpoint not found (404). If running locally, ensure you are using 'netlify dev' to start the functions server. ${errorMessage}`;
+        }
+        
+        throw new Error(errorMessage);
     }
     
     return response.json();

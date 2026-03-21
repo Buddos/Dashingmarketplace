@@ -45,11 +45,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchRole = useCallback(async (userId: string) => {
     try {
+      // Hardcoded fallback for the specific admin user requested by the USER
+      if (user?.email === "admin@dashing.com") {
+        setRole("admin");
+        localStorage.setItem("user_role", "admin");
+        return "admin";
+      }
+
       const { data } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .maybeSingle();
+
       const r = data?.role ?? "authenticated";
       setRole(r);
       localStorage.setItem("user_role", r);
@@ -58,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error fetching role:", e);
       return role ?? "authenticated";
     }
-  }, [role]);
+  }, [role, user?.email]);
 
   useEffect(() => {
     // Set up listener FIRST

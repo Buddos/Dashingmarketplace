@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { PlusCircle, Pencil, Trash2, Upload } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const emptyForm = { name: "", slug: "", description: "", price: "", sale_price: "", stock_quantity: "0", image_url: "", badge: "" };
@@ -23,7 +24,7 @@ export default function SellerProducts() {
   useEffect(() => { fetchProducts(); }, []);
 
   const fetchProducts = () => {
-    api.fetch("/api/products")
+    api.fetch("/api/products?mine=true")
       .then(data => { setProducts(Array.isArray(data) ? data : []); setLoading(false); });
   };
 
@@ -37,37 +38,56 @@ export default function SellerProducts() {
 
   const handleSave = async () => {
     setUploading(true);
-    let finalImageUrl = form.image_url;
+    try {
+      let finalImageUrl = form.image_url;
 
-    if (selectedFile) {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
-      const filePath = `product-images/${fileName}`;
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const filePath = `product-images/${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
-        .from('products') // Assuming 'products' bucket exists
-        .upload(filePath, selectedFile);
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, selectedFile);
 
-      if (uploadError) {
-        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
-        setUploading(false);
-        return;
+        if (uploadError) {
+          toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+        
+        finalImageUrl = publicUrl;
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('products')
-        .getPublicUrl(filePath);
+      const url = editing ? `/api/products/${editing.id}` : "/api/products";
+      const method = editing ? "PUT" : "POST";
+      await api.fetch(url, { 
+        method, 
+        body: JSON.stringify({ 
+          ...form, 
+          image_url: finalImageUrl, 
+          price: Number(form.price), 
+          sale_price: form.sale_price ? Number(form.sale_price) : null, 
+          stock_quantity: Number(form.stock_quantity) 
+        }) 
+      });
       
-      finalImageUrl = publicUrl;
+      toast({ title: editing ? "Product updated" : "Product created" });
+      setDialogOpen(false);
+      fetchProducts();
+    } catch (err: any) {
+      console.error("Save error:", err);
+      toast({ 
+        title: "Save failed", 
+        description: err.message || "An unexpected error occurred", 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploading(false);
     }
-
-    const url = editing ? `/api/products/${editing.id}` : "/api/products";
-    const method = editing ? "PUT" : "POST";
-    const res = await api.fetch(url, { method, body: JSON.stringify({ ...form, image_url: finalImageUrl, price: Number(form.price), sale_price: form.sale_price ? Number(form.sale_price) : null, stock_quantity: Number(form.stock_quantity) }) });
-    setUploading(false);
-    toast({ title: editing ? "Product updated" : "Product created" });
-    setDialogOpen(false);
-    fetchProducts();
   };
 
   const handleDelete = async (id: number) => {
@@ -141,8 +161,13 @@ export default function SellerProducts() {
               {field("stock_quantity", "Stock", "number")}
               {field("badge", "Badge (optional)")}
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Product Image</label>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">Product Image</label>
+                <Link to="/admin/assets" className="text-[10px] text-accent hover:underline flex items-center gap-1">
+                  <ImageIcon size={12} /> Asset Library
+                </Link>
+              </div>
               <div className="mt-1 flex items-center gap-3">
                 {(selectedFile || form.image_url) && (
                   <img src={selectedFile ? URL.createObjectURL(selectedFile) : form.image_url} alt="Preview" className="h-16 w-16 rounded-lg object-cover border border-border" />

@@ -102,9 +102,14 @@ const Header = () => {
               </span>
             </Link>
             {user ? (
-              <button onClick={signOut} className="hidden md:flex p-2 text-foreground hover:text-accent transition-colors" aria-label="Sign out">
-                <LogOut size={20} />
-              </button>
+              <div className="flex items-center gap-1">
+                <Link to="/profile" className="hidden md:flex p-2 text-foreground hover:text-accent transition-colors" aria-label="Profile">
+                  <User size={20} />
+                </Link>
+                <button onClick={signOut} className="hidden md:flex p-2 text-foreground hover:text-accent transition-colors" aria-label="Sign out">
+                  <LogOut size={20} />
+                </button>
+              </div>
             ) : (
               <Link to="/login" className="hidden md:flex items-center gap-2 p-2 text-foreground hover:text-accent transition-colors" aria-label="Account">
                 <User size={20} />
@@ -149,12 +154,17 @@ const Header = () => {
               </Link>
             ))}
             {user ? (
-              <button
-                onClick={() => { signOut(); setMobileOpen(false); }}
-                className="font-body text-sm font-medium tracking-wide uppercase text-muted-foreground hover:text-foreground py-2 text-left"
-              >
-                Sign Out
-              </button>
+              <>
+                <Link to="/profile" className="font-body text-sm font-medium tracking-wide uppercase text-muted-foreground hover:text-foreground py-2" onClick={() => setMobileOpen(false)}>
+                  Profile
+                </Link>
+                <button
+                  onClick={() => { signOut(); setMobileOpen(false); }}
+                  className="font-body text-sm font-medium tracking-wide uppercase text-muted-foreground hover:text-foreground py-2 text-left"
+                >
+                  Sign Out
+                </button>
+              </>
             ) : (
               <Link to="/login" className="font-body text-sm font-medium tracking-wide uppercase text-muted-foreground hover:text-foreground py-2" onClick={() => setMobileOpen(false)}>
                 Account
