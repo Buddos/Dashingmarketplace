@@ -4,13 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 import { PlusCircle, Pencil, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-function authHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
-}
 
 const emptyForm = { name: "", slug: "", description: "", price: "", sale_price: "", stock_quantity: "0", image_url: "", badge: "" };
 
@@ -27,8 +23,7 @@ export default function SellerProducts() {
   useEffect(() => { fetchProducts(); }, []);
 
   const fetchProducts = () => {
-    fetch("/api/products", { headers: authHeaders() })
-      .then(r => r.json())
+    api.fetch("/api/products")
       .then(data => { setProducts(Array.isArray(data) ? data : []); setLoading(false); });
   };
 
@@ -68,9 +63,8 @@ export default function SellerProducts() {
 
     const url = editing ? `/api/products/${editing.id}` : "/api/products";
     const method = editing ? "PUT" : "POST";
-    const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify({ ...form, image_url: finalImageUrl, price: Number(form.price), sale_price: form.sale_price ? Number(form.sale_price) : null, stock_quantity: Number(form.stock_quantity) }) });
+    const res = await api.fetch(url, { method, body: JSON.stringify({ ...form, image_url: finalImageUrl, price: Number(form.price), sale_price: form.sale_price ? Number(form.sale_price) : null, stock_quantity: Number(form.stock_quantity) }) });
     setUploading(false);
-    if (!res.ok) { toast({ title: "Save failed", variant: "destructive" }); return; }
     toast({ title: editing ? "Product updated" : "Product created" });
     setDialogOpen(false);
     fetchProducts();
@@ -78,7 +72,7 @@ export default function SellerProducts() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this product?")) return;
-    await fetch(`/api/products/${id}`, { method: "DELETE", headers: authHeaders() });
+    await api.fetch(`/api/products/${id}`, { method: "DELETE" });
     toast({ title: "Product deleted" });
     fetchProducts();
   };

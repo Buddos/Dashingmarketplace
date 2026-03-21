@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-
-function authHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
+import { api } from "@/lib/api";
+ 
 export default function SellerAnalytics() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
-    fetch("/api/orders", { headers: authHeaders() })
-      .then(r => r.json())
+    api.fetch("/api/orders")
       .then(data => { setOrders(Array.isArray(data) ? data : []); setLoading(false); });
   }, []);
 

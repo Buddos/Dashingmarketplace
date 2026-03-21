@@ -96,6 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Explicitly fetch role for immediate redirection in components
     const role = await fetchRole(data.user.id);
+    return { error: null, role };
   };
 
   const signUp = async (email: string, password: string, full_name?: string, _shop_description?: string) => {

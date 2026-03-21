@@ -325,12 +325,20 @@ export const handler = async (
       return makeResponse(200, data);
     }
 
-    if (route.match(/^\/admin\/reviews\/[^/]+$/) && event.httpMethod === "PUT") {
+    if (route.match(/^\/admin\/reviews\/[^/]+$/)) {
       if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[3];
-      const { status } = JSON.parse(event.body ?? "{}");
-      const rows = await sql`UPDATE public.reviews SET status = ${status} WHERE id = ${id} RETURNING *`;
-      return makeResponse(200, rows[0]);
+
+      if (event.httpMethod === "PUT") {
+        const { status } = JSON.parse(event.body ?? "{}");
+        const rows = await sql`UPDATE public.reviews SET status = ${status} WHERE id = ${id} RETURNING *`;
+        return makeResponse(200, rows[0]);
+      }
+
+      if (event.httpMethod === "DELETE") {
+        await sql`DELETE FROM public.reviews WHERE id = ${id}`;
+        return makeResponse(200, { success: true });
+      }
     }
 
     // ── CONTACT MESSAGES ─────────────────────────────────────────────────────

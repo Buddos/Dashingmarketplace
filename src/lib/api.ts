@@ -1,28 +1,38 @@
 export const api = {
   fetch: async (endpoint: string, options: RequestInit = {}) => {
-    // Determine base URL dynamically (works locally using netlify dev or in prod on netlify)
-    const baseUrl = import.meta.env?.VITE_API_URL || "/.netlify/functions";
+    // Determine base URL dynamically. 
+    // In production on Netlify, relative paths work via redirects in netlify.toml
+    // In local development, we prefer hitting the function port directly if VITE_API_URL is set
+    const baseUrl = import.meta.env?.VITE_API_URL || "";
     
-    // Automatically attach token from cookie or localStorage for auth
+    // Automatically attach token from localStorage for auth
     const token = localStorage.getItem("token");
     
-    const headers = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options.headers,
+      ...((options.headers as Record<string, string>) || {}),
     };
-
+ 
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-
-    const response = await fetch(`${baseUrl}${endpoint}`, {
+ 
+    const url = endpoint.startsWith("http") ? endpoint : `${baseUrl}${endpoint}`;
+ 
+    const response = await fetch(url, {
       ...options,
       headers,
     });
-
+ 
     if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || response.statusText);
+        const text = await response.text();
+        let err;
+        try {
+          err = JSON.parse(text);
+        } catch {
+          err = { error: text || response.statusText };
+        }
+        throw new Error(err.error || err.message || response.statusText);
     }
     
     return response.json();

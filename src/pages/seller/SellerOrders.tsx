@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 const STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
 const statusColor: Record<string, string> = {
@@ -16,10 +17,7 @@ const statusColor: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
-function authHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
-}
+
 
 export default function SellerOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -31,26 +29,27 @@ export default function SellerOrders() {
   useEffect(() => { fetchOrders(); }, []);
 
   const fetchOrders = () => {
-    fetch("/api/orders", { headers: authHeaders() })
-      .then(r => r.json())
+    api.fetch("/api/orders")
       .then(data => { setOrders(Array.isArray(data) ? data : []); setLoading(false); });
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const res = await fetch(`/api/orders/${id}`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({ status }),
-    });
-    if (!res.ok) { toast({ title: "Error updating status", variant: "destructive" }); return; }
-    toast({ title: `Order marked ${status}` });
-    fetchOrders();
+    try {
+      await api.fetch(`/api/orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+      toast({ title: `Order marked ${status}` });
+      fetchOrders();
+    } catch (err) {
+      toast({ title: "Error updating status", variant: "destructive" });
+    }
   };
 
   const viewDetails = async (order: any) => {
     setSelected(order);
-    fetch(`/api/orders/${order.id}/items`, { headers: authHeaders() })
-      .then(r => r.json()).then(setItems);
+    api.fetch(`/api/orders/${order.id}/items`)
+      .then(setItems);
   };
 
   return (

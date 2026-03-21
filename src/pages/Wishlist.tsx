@@ -53,7 +53,7 @@ const Wishlist = () => {
 
   const removeItem = async (wishlistId: string) => {
     try {
-      await api.fetch(`/api/wishlist?id=${wishlistId}`, { method: 'DELETE' });
+      await api.fetch(`/api/wishlist/${wishlistId}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((i) => i.wishlistId !== wishlistId));
       toast.success("Removed from wishlist");
     } catch (err: any) {

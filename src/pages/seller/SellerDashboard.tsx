@@ -3,21 +3,19 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
 import { Package, ShoppingCart, TrendingUp, Star, ArrowRight, PlusCircle } from "lucide-react";
-
+ 
 export default function SellerDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0, reviews: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
     Promise.all([
-      fetch("/api/products", { headers }).then(r => r.json()).catch(() => []),
-      fetch("/api/orders", { headers }).then(r => r.json()).catch(() => []),
+      api.fetch("/api/products").catch(() => []),
+      api.fetch("/api/orders").catch(() => []),
     ]).then(([products, orders]) => {
       const sellerProducts = Array.isArray(products) ? products : [];
       const allOrders = Array.isArray(orders) ? orders : [];

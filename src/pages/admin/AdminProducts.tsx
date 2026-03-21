@@ -121,7 +121,7 @@ export default function AdminProducts() {
 
     try {
       if (editing) {
-        await api.fetch(`/api/products?id=${editing.id}`, {
+        await api.fetch(`/api/products/${editing.id}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         });
@@ -145,7 +145,7 @@ export default function AdminProducts() {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this product?")) return;
     try {
-      await api.fetch(`/api/products?id=${id}`, { method: "DELETE" });
+      await api.fetch(`/api/products/${id}`, { method: "DELETE" });
       toast({ title: "Product deleted" });
       fetchData();
     } catch (err: any) {

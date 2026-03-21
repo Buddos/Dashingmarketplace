@@ -25,7 +25,7 @@ export default function SellerRegister() {
     
     if (session) {
       // If session exists, assign seller role and navigate
-      const { error: roleError } = await supabase.from("user_roles").insert({
+      const { error: roleError } = await supabase.from("user_roles").upsert({
         user_id: session.user.id,
         role: "seller" as const,
       });
