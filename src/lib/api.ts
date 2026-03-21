@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export const api = {
   fetch: async (endpoint: string, options: RequestInit = {}) => {
     // Determine base URL dynamically. 
@@ -5,8 +7,9 @@ export const api = {
     // In local development, we prefer hitting the function port directly if VITE_API_URL is set
     const baseUrl = import.meta.env?.VITE_API_URL || "";
     
-    // Automatically attach token from localStorage for auth
-    const token = localStorage.getItem("token");
+    // Automatically attach token from Supabase session for auth
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
     
     const headers: Record<string, string> = {
       "Content-Type": "application/json",

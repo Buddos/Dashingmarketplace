@@ -1,4 +1,4 @@
-import { handler as netlifyHandler } from "../netlify/functions/api";
+import { handler as netlifyHandler } from "./_handler";
 
 export default async function handler(req: any, res: any) {
   // Add CORS headers
@@ -16,12 +16,13 @@ export default async function handler(req: any, res: any) {
   }
 
   // Construct Netlify-style event
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   const event = {
-    path: req.url,
+    path: url.pathname,
     httpMethod: req.method,
     headers: req.headers,
     queryStringParameters: req.query,
-    body: req.body ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : null,
+    body: req.body, // In Vercel, req.body is already parsed if it's JSON
   };
 
   try {
