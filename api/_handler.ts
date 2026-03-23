@@ -20,23 +20,44 @@ function makeResponse(statusCode: number, body: unknown, extraHeaders: Record<st
   };
 }
 
-function getUser(event: HandlerEvent): AuthUser | null {
+async function getUser(event: HandlerEvent): Promise<AuthUser | null> {
   const authHeader = (event.headers["authorization"] || event.headers["Authorization"]) ?? "";
   if (!authHeader.startsWith("Bearer ")) return null;
+  
+  if (!JWT_SECRET) {
+    console.error("JWT_SECRET is not set in environment variables");
+    return null;
+  }
+
   try {
-    return jwt.verify(authHeader.slice(7), JWT_SECRET) as AuthUser;
-  } catch {
+    const token = authHeader.slice(7);
+    const decoded = jwt.verify(token, JWT_SECRET!) as any;
+    const userId = decoded.sub || decoded.id;
+    
+    // Fetch custom role from DB
+    const roles = await sql`SELECT role FROM public.user_roles WHERE user_id = ${userId} LIMIT 1`;
+    const role = roles.length > 0 ? roles[0].role : "authenticated";
+
+    const user = {
+      id: userId,
+      email: decoded.email,
+      role: role,
+    };
+    console.log(`[API] Authenticated user: ${user.email} (${user.id}, role: ${user.role})`);
+    return user as AuthUser;
+  } catch (err) {
+    console.error("JWT verification or role fetch failed:", err);
     return null;
   }
 }
 
-function requireAdmin(event: HandlerEvent): AuthUser | null {
-  const user = getUser(event);
+async function requireAdmin(event: HandlerEvent): Promise<AuthUser | null> {
+  const user = await getUser(event);
   return user?.role === "admin" ? user : null;
 }
 
-function requireSellerOrAdmin(event: HandlerEvent): AuthUser | null {
-  const user = getUser(event);
+async function requireSellerOrAdmin(event: HandlerEvent): Promise<AuthUser | null> {
+  const user = await getUser(event);
   return (user?.role === "admin" || user?.role === "seller") ? user : null;
 }
 
@@ -59,7 +80,7 @@ export const handler = async (
   try {
     // ── PRODUCTS ─────────────────────────────────────────────────────────────
     if (route === "/products" && event.httpMethod === "GET") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (qs.mine === "true" && user?.role === "seller") {
         const data = await sql`
           SELECT p.* FROM public.products p
@@ -96,8 +117,9 @@ export const handler = async (
     }
 
     if (route === "/products" && event.httpMethod === "POST") {
-      const user = requireSellerOrAdmin(event);
+      const user = await requireSellerOrAdmin(event);
       if (!user) return makeResponse(403, { error: "Forbidden" });
+      
       const body = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       let { name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge } = body;
       
@@ -105,25 +127,43 @@ export const handler = async (
         slug = generateSlug(name);
       }
 
+      // Ensure price fields are numbers to prevent DB errors
+      const numPrice = Number(price);
+      const numSalePrice = sale_price ? Number(sale_price) : null;
+      const numStock = Number(stock_quantity || 0);
+      const numCategory = category_id ? Number(category_id) : null;
+
+      console.log(`[API] Inserting product: ${name} (slug: ${slug}, price: ${numPrice})`);
       const rows = await sql`
         INSERT INTO public.products (name, slug, description, price, sale_price, stock_quantity, category_id, image_url, badge)
-        VALUES (${name}, ${slug}, ${description ?? ""}, ${price}, ${sale_price ?? null}, ${stock_quantity ?? 0}, ${category_id ?? null}, ${image_url ?? null}, ${badge ?? null})
+        VALUES (${name}, ${slug}, ${description ?? ""}, ${numPrice}, ${numSalePrice}, ${numStock}, ${numCategory}, ${image_url ?? null}, ${badge ?? null})
         RETURNING *
       `;
       const product = rows[0];
+      console.log(`[API] Product inserted successfully, ID: ${product.id}`);
 
       if (user.role === "seller") {
-        await sql`
-          INSERT INTO public.seller_products (product_id, seller_id)
-          VALUES (${product.id}, ${user.id})
-        `;
+        try {
+          console.log(`[API] Associating product ${product.id} with seller ${user.id}`);
+          await sql`
+            INSERT INTO public.seller_products (product_id, seller_id)
+            VALUES (${product.id}, ${user.id})
+          `;
+          console.log(`[API] Seller association successful`);
+        } catch (assocErr) {
+          console.error("[API] Seller association failed:", assocErr);
+          // If the associate fails, we still have the product, but the seller won't own it in our API logic.
+          // We return a 500 here to let the user know, but mention it's an association failure.
+          return makeResponse(500, { error: "Product saved but seller association failed.", details: assocErr instanceof Error ? assocErr.message : String(assocErr) });
+        }
       }
 
+      console.log(`[API] Returning 201 response`);
       return makeResponse(201, product);
     }
 
     if (route.match(/^\/products\/\d+$/) && event.httpMethod === "PUT") {
-      const user = requireSellerOrAdmin(event);
+      const user = await requireSellerOrAdmin(event);
       if (!user) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
       const body = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
@@ -150,7 +190,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/products\/\d+$/) && event.httpMethod === "DELETE") {
-      const user = requireSellerOrAdmin(event);
+      const user = await requireSellerOrAdmin(event);
       if (!user) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
 
@@ -182,7 +222,7 @@ export const handler = async (
     }
 
     if (route === "/reviews" && event.httpMethod === "POST") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const { product_id, rating, title, body: reviewBody } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
@@ -195,7 +235,7 @@ export const handler = async (
 
     // ── ORDERS ────────────────────────────────────────────────────────────────
     if (route === "/orders" && event.httpMethod === "GET") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       let data;
       if (user.role === "admin") {
@@ -207,7 +247,7 @@ export const handler = async (
     }
 
     if (route === "/orders" && event.httpMethod === "POST") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const { subtotal, shipping, tax, total, shipping_name, shipping_address, shipping_city, shipping_state, shipping_zip, shipping_country, items } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
@@ -228,7 +268,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/orders\/[^/]+$/) && event.httpMethod === "PUT") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
       const { status } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
@@ -245,7 +285,7 @@ export const handler = async (
 
     // ── CART ──────────────────────────────────────────────────────────────────
     if (route === "/cart" && event.httpMethod === "GET") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const data = await sql`
         SELECT c.*, p.name, p.price, p.sale_price, p.image_url FROM public.cart_items c
@@ -256,7 +296,7 @@ export const handler = async (
     }
 
     if (route === "/cart" && event.httpMethod === "POST") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const { product_id, quantity } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
@@ -269,7 +309,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/cart\/\d+$/) && event.httpMethod === "PUT") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const productId = route.split("/")[2];
       const { quantity } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
@@ -280,7 +320,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/cart\/\d+$/) && event.httpMethod === "DELETE") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const productId = route.split("/")[2];
       await sql`DELETE FROM public.cart_items WHERE user_id = ${user.id} AND product_id = ${productId}`;
@@ -289,7 +329,7 @@ export const handler = async (
 
     // ── WISHLIST ──────────────────────────────────────────────────────────────
     if (route === "/wishlist" && event.httpMethod === "GET") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const data = await sql`
         SELECT w.*, p.name, p.price, p.sale_price, p.image_url FROM public.wishlist w
@@ -300,7 +340,7 @@ export const handler = async (
     }
 
     if (route === "/wishlist" && event.httpMethod === "POST") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const { product_id } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
@@ -311,7 +351,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/wishlist\/\d+$/) && event.httpMethod === "DELETE") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const productId = route.split("/")[2];
       await sql`DELETE FROM public.wishlist WHERE user_id = ${user.id} AND product_id = ${productId}`;
@@ -320,7 +360,7 @@ export const handler = async (
 
     // ── USERS (admin) ─────────────────────────────────────────────────────────
     if (route === "/users" && event.httpMethod === "GET") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const profiles = await sql`SELECT id, email, full_name, phone, city, country, created_at FROM public.profiles ORDER BY created_at DESC`;
       const roles = await sql`SELECT user_id, role FROM public.user_roles WHERE role = 'admin'`;
       const adminIds = new Set(roles.map((r: Record<string, string>) => r.user_id));
@@ -330,13 +370,13 @@ export const handler = async (
 
     // ── REVIEWS (admin moderation) ──────────────────────────────────────────
     if (route === "/admin/reviews" && event.httpMethod === "GET") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const data = await sql`SELECT r.*, p.name as product_name, pr.full_name as author_name FROM public.reviews r LEFT JOIN public.products p ON p.id = r.product_id LEFT JOIN public.profiles pr ON pr.id = r.user_id ORDER BY r.created_at DESC`;
       return makeResponse(200, data);
     }
 
     if (route.match(/^\/admin\/reviews\/[^/]+$/)) {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[3];
 
       if (event.httpMethod === "PUT") {
@@ -363,13 +403,13 @@ export const handler = async (
     }
 
     if (route === "/admin/messages" && event.httpMethod === "GET") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const data = await sql`SELECT * FROM public.contact_messages ORDER BY created_at DESC`;
       return makeResponse(200, data);
     }
 
     if (route.match(/^\/admin\/messages\/[^/]+$/) && event.httpMethod === "PUT") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[3];
       const { status, admin_reply } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`UPDATE public.contact_messages SET status = ${status}, admin_reply = ${admin_reply ?? null}, updated_at = now() WHERE id = ${id} RETURNING *`;
@@ -383,7 +423,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/contact-info\/[^/]+$/) && event.httpMethod === "PUT") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const key = route.split("/")[2];
       const { value } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`UPDATE public.contact_info SET value = ${value}, updated_at = now() WHERE key = ${key} RETURNING *`;
@@ -397,7 +437,7 @@ export const handler = async (
     }
 
     if (route === "/team" && event.httpMethod === "POST") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const { name, role, bio, image_url, email, sort_order, is_founder } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
         INSERT INTO public.team_members (name, role, bio, image_url, email, sort_order, is_founder)
@@ -408,7 +448,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/team\/[^/]+$/) && event.httpMethod === "PUT") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
       const { name, role, bio, image_url, email, sort_order, is_founder } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
@@ -419,7 +459,7 @@ export const handler = async (
     }
 
     if (route.match(/^\/team\/[^/]+$/) && event.httpMethod === "DELETE") {
-      if (!requireAdmin(event)) return makeResponse(403, { error: "Forbidden" });
+      if (!(await requireAdmin(event))) return makeResponse(403, { error: "Forbidden" });
       const id = route.split("/")[2];
       await sql`DELETE FROM public.team_members WHERE id = ${id}`;
       return makeResponse(200, { success: true });
@@ -427,14 +467,14 @@ export const handler = async (
 
     // ── PROFILE ───────────────────────────────────────────────────────────────
     if (route === "/profile" && event.httpMethod === "GET") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const rows = await sql`SELECT id, email, full_name, avatar_url, phone, address_line1, address_line2, city, state, zip_code, country FROM public.profiles WHERE id = ${user.id}`;
       return makeResponse(200, rows[0] ?? {});
     }
 
     if (route === "/profile" && event.httpMethod === "PUT") {
-      const user = getUser(event);
+      const user = await getUser(event);
       if (!user) return makeResponse(401, { error: "Unauthorized" });
       const { full_name, avatar_url, phone, address_line1, address_line2, city, state, zip_code, country } = typeof event.body === 'string' ? JSON.parse(event.body ?? "{}") : event.body;
       const rows = await sql`
